@@ -9,7 +9,6 @@ import javax.mail.internet.MimeMessage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.velocity.app.VelocityEngine;
-import org.springframework.core.io.Resource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailPreparationException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -26,15 +25,10 @@ public class MailManagerImpl implements MailManager {
 	private static final String TEXT_TEMPLATE_SUFFIX = "text.vm";
 	
 	private JavaMailSender javaMailSender;
-	private Resource templateBase;
 	private VelocityEngine velocityEngine;
 	
 	public void setJavaMailSender(JavaMailSender javaMailSender) {
 		this.javaMailSender = javaMailSender;
-	}
-
-	public void setTemplateBase(Resource templateBase) {
-		this.templateBase = templateBase;
 	}
 
 	public void setVelocityEngine(VelocityEngine velocityEngine) {
