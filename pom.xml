@@ -21,6 +21,12 @@
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-jms</artifactId>
+			<version>2.5.5</version>
+			<scope>compile</scope>
+		</dependency>			
+		<dependency>
 			<groupId>velocity</groupId>
 			<artifactId>velocity</artifactId>
 			<version>1.5</version>
@@ -31,7 +37,25 @@
 			<artifactId>mail</artifactId>
 			<version>1.4.1</version>
 			<scope>compile</scope>
-		</dependency>		
+		</dependency>
+		<dependency>
+			<groupId>javax.jms</groupId>
+			<artifactId>jms</artifactId>
+			<version>1.1</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.activemq</groupId>
+			<artifactId>activemq-core </artifactId>
+			<version>5.2.0</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.xbean</groupId>
+			<artifactId>xbean-spring</artifactId>
+			<version>3.5</version>
+			<scope>runtime</scope>
+		</dependency>					
 	</dependencies>
 	<build>
 		<pluginManagement>
