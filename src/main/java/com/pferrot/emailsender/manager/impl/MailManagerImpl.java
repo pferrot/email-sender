@@ -1,5 +1,6 @@
 package com.pferrot.emailsender.manager.impl;
 
+import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.Map;
@@ -34,15 +35,15 @@ public class MailManagerImpl implements MailManager {
 	public void setVelocityEngine(VelocityEngine velocityEngine) {
 		this.velocityEngine = velocityEngine;
 	}
-
+	
 	public void send(String senderName, String senderAddress, 
-					 Map<String, String> to,
-			         Map<String, String> cc, 
-			         Map<String, String> bcc, 
-			         String subject, 
-			         Map mergeObjects, 
-			         String templateLocation)
-			throws MailException {
+			 Map<String, String> to,
+	         Map<String, String> cc, 
+	         Map<String, String> bcc, 
+	         String subject, 
+	         String bodyText, 
+	         String bodyHtml)
+	throws MailException {
 		
 		try {
 			MimeMessage mimeMessage = javaMailSender.createMimeMessage();
@@ -87,25 +88,9 @@ public class MailManagerImpl implements MailManager {
 					}						
 					helper.addBcc(recipient, name);
 				}
-			}	
-			
-			StringWriter text = new StringWriter();
-			VelocityEngineUtils.mergeTemplate(velocityEngine, templateLocation + "/" + TEXT_TEMPLATE_SUFFIX, mergeObjects, text);
-			text.close();
-			
-			if (log.isDebugEnabled()) {
-				log.debug("Text message: \n" + text.toString());
 			}
 			
-			StringWriter html = new StringWriter();
-			VelocityEngineUtils.mergeTemplate(velocityEngine, templateLocation + "/" + HTML_TEMPLATE_SUFFIX, mergeObjects, html);
-			html.close();
-			
-			if (log.isDebugEnabled()) {
-				log.debug("HTML message: \n" + html.toString());
-			}
-			
-			helper.setText(text.toString(), html.toString());
+			helper.setText(bodyText, bodyHtml);
 			
 			if (log.isDebugEnabled()) {
 				log.debug("Subject: " + subject);
@@ -122,7 +107,60 @@ public class MailManagerImpl implements MailManager {
 		catch (Exception e) {
 			throw new MailPreparationException(e);
 		}		
+	}
+
+	public void send(String senderName, String senderAddress, 
+					 Map<String, String> to,
+			         Map<String, String> cc, 
+			         Map<String, String> bcc, 
+			         String subject, 
+			         Map mergeObjects, 
+			         String templateLocation)
+			throws MailException {
 		
+		try {
+			send(senderName, senderAddress, to, cc, bcc, subject, getText(mergeObjects, templateLocation), getHtml(mergeObjects, templateLocation));
+		}
+		catch (MailException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			throw new MailPreparationException(e);
+		}		
+	}
+	
+	public String getText(Map mergeObjects, String templateLocation) throws MailException {
+		try {
+			StringWriter text = new StringWriter();
+			VelocityEngineUtils.mergeTemplate(velocityEngine, templateLocation + "/" + TEXT_TEMPLATE_SUFFIX, mergeObjects, text);
+			text.close();
+			
+			if (log.isDebugEnabled()) {
+				log.debug("Text message: \n" + text.toString());
+			}
+			
+			return text.toString();
+		}
+		catch (IOException e) {
+			throw new MailPreparationException(e);
+		}
+	}
+	
+	public String getHtml(Map mergeObjects, String templateLocation) throws MailException {
+		try {
+			StringWriter html = new StringWriter();
+			VelocityEngineUtils.mergeTemplate(velocityEngine, templateLocation + "/" + HTML_TEMPLATE_SUFFIX, mergeObjects, html);
+			html.close();
+			
+			if (log.isDebugEnabled()) {
+				log.debug("HTML message: \n" + html.toString());
+			}
+			
+			return html.toString();
+		}
+		catch (IOException e) {
+			throw new MailPreparationException(e);
+		}		
 	}
 
 }
