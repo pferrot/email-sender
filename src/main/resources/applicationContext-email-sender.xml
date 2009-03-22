@@ -9,6 +9,7 @@
 	<bean id="emailSender.mailManager" class="com.pferrot.emailsender.manager.impl.MailManagerImpl">
 		<property name="javaMailSender" ref="emailSender.javaMailSender" />
 		<property name="velocityEngine" ref="emailSender.velocityEngine" />
+		<property name="emailToSendProducer" ref="emailSender.emailToSendProducer" />
 	</bean>
 	
 	<bean id="emailSender.velocityEngine" class="org.springframework.ui.velocity.VelocityEngineFactoryBean">
@@ -35,6 +36,7 @@
 	    <property name="connectionFactory" ref="emailSender.activeMQConnectionFactory"/>
 	    <property name="destination" ref="emailSender.destination"/>
 	    <property name="messageListener" ref="emailSender.emailToSendConsumer" />
+	    <property name="sessionTransacted" value="true"/>
 	</bean>	
 
 	<!-- and this is the message listener container -->
@@ -55,21 +57,26 @@
 	
 	<bean id="emailSender.jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
 		<property name="connectionFactory" ref="emailSender.activeMQConnectionFactory" />
-	</bean>
+	</bean>	
 	
-	
-	
-  <!--  lets create an embedded ActiveMQ Broker -->
-  <amq:broker useJmx="false" persistent="false">
-    <amq:transportConnectors>
-      <amq:transportConnector uri="tcp://localhost:0" />
-    </amq:transportConnectors>
-  </amq:broker>
+    <!--  lets create an embedded ActiveMQ Broker -->
+	<amq:broker useJmx="false" brokerName="broker1" persistent="true">
+		<amq:persistenceAdapter>
+			<amq:amqPersistenceAdapter directory="activemq-data" maxFileLength="32mb"/>
+		</amq:persistenceAdapter>
+		<amq:transportConnectors>
+			<amq:transportConnector uri="tcp://localhost:0" />
+		</amq:transportConnectors>		
+	</amq:broker>
 
-   <!--  ActiveMQ destinations to use  -->
-  <amq:queue id="emailSender.destination" physicalName="com.pferrot.email-sender.RegistrationEmailorg.apache.activemq.spring.Test.spring.embedded"/>
-
-  <!-- JMS ConnectionFactory to use, configuring the embedded broker using XML -->
-  <amq:connectionFactory id="emailSender.activeMQConnectionFactory" brokerURL="vm://localhost"/>
+    <!--  ActiveMQ destinations to use  -->
+	<amq:queue id="emailSender.destination"
+		physicalName="com.pferrot.email-sender.RegistrationEmailorg.apache.activemq.spring.Test.spring.embedded" />
+	
+	<!--
+		JMS ConnectionFactory to use, configuring the embedded broker using
+		XML
+	-->
+	<amq:connectionFactory id="emailSender.activeMQConnectionFactory" brokerURL="vm://localhost" />
 	
 </beans>

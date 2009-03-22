@@ -6,8 +6,6 @@ import javax.jms.MapMessage;
 import javax.jms.Message;
 import javax.jms.Session;
 
-//import org.apache.commons.logging.Log;
-//import org.apache.commons.logging.LogFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
 
@@ -42,26 +40,19 @@ public class EmailToSendProducer {
 //			  Map<String, String> bcc, 
 			final String subject, 
 			final String bodyText, 
-			final String bodyHtml) {
-		MessageCreator creator = new MessageCreator() 
-		{
-			public Message createMessage(Session session)
-			{
+			final String bodyHtml) throws JMSException {
+		MessageCreator creator = new MessageCreator() {
+			public Message createMessage(Session session) throws JMSException {
 				MapMessage mapMessage = null;
 				
-				try {
-					mapMessage = session.createMapMessage();
-					mapMessage.setString(SENDER_NAME_KEY, senderName);
-					mapMessage.setString(SENDER_ADDRESS_KEY, senderAddress);
-					mapMessage.setString(TO_KEY, to);
-					mapMessage.setString(SUBJECT_KEY, subject);
-					mapMessage.setString(BODY_TEXT_KEY, bodyText);
-					mapMessage.setString(BODY_HTML_KEY, bodyHtml);
-				}
-				catch (JMSException e)
-				{
-					e.printStackTrace();
-				}
+				mapMessage = session.createMapMessage();
+				mapMessage.setString(SENDER_NAME_KEY, senderName);
+				mapMessage.setString(SENDER_ADDRESS_KEY, senderAddress);
+				mapMessage.setString(TO_KEY, to);
+				mapMessage.setString(SUBJECT_KEY, subject);
+				mapMessage.setString(BODY_TEXT_KEY, bodyText);
+				mapMessage.setString(BODY_HTML_KEY, bodyHtml);
+			
 				return mapMessage;
 			}
 		};

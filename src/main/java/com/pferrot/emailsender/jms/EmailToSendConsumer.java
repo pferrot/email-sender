@@ -6,15 +6,16 @@ import java.util.Map;
 import javax.jms.JMSException;
 import javax.jms.MapMessage;
 import javax.jms.Message;
-import javax.jms.MessageListener;
+import javax.jms.Session;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.jms.listener.SessionAwareMessageListener;
 import org.springframework.mail.MailException;
 
 import com.pferrot.emailsender.manager.MailManager;
 
-public class EmailToSendConsumer implements MessageListener {
+public class EmailToSendConsumer implements SessionAwareMessageListener {
 	
 	private final static Log log = LogFactory.getLog(EmailToSendConsumer.class);
 	
@@ -24,13 +25,17 @@ public class EmailToSendConsumer implements MessageListener {
 		this.mailManager = mailManager;
 	}
 
-	public void onMessage(Message message) {
+	/**
+	 * TODO: since this processing happens in a transaction (see applicationContext-email-sender.xml,
+	 * sessionTransacted = true), what if a message always fails? Should we purge the queue after
+	 * some time? But maybe the problem is with our server...
+	 */
+	public void onMessage(final Message message, final Session session) throws JMSException {
 		if (log.isDebugEnabled()) {
 			log.debug("Message received: " + message);
 		}
 		
-		if (message instanceof MapMessage)
-        {
+		if (message instanceof MapMessage) {
 			MapMessage mapMessage = (MapMessage)message;
             try
             {
@@ -42,21 +47,29 @@ public class EmailToSendConsumer implements MessageListener {
             	final String subject = mapMessage.getString(EmailToSendProducer.SUBJECT_KEY);
             	final String bodyText = mapMessage.getString(EmailToSendProducer.BODY_TEXT_KEY);
             	final String bodyHtml = mapMessage.getString(EmailToSendProducer.BODY_HTML_KEY);
-            	mailManager.send(senderName, senderAddress, toMap, null, null, subject, bodyText, bodyHtml);
+            	mailManager.sendSync(senderName, senderAddress, toMap, null, null, subject, bodyText, bodyHtml);
             }
             catch (JMSException jmse)
             {
-            	// TODO
-            	throw new RuntimeException(jmse);
+            	if (log.isWarnEnabled()) {
+            		log.warn("Email could not be sent out (JMSException): " + jmse.getMessage());
+            	}
+            	throw jmse;
             }
             catch (MailException me) {
-            	throw new RuntimeException(me);
+            	final JMSException jmsException = new JMSException("Mail exception.");
+            	jmsException.setLinkedException(me);
+            	if (log.isWarnEnabled()) {
+            		log.warn("Email could not be sent out (MailException): " + me.getMessage());
+            	}
+            	throw jmsException;
             }
-       }
+        }
+		// Not a map message, ignore it.
 		else {
-			throw new RuntimeException("Not a map message!!!");
-		}
-		
-		
+			if (log.isWarnEnabled()) {
+				log.warn("Email not sent, not a map message: " + message);
+			}
+		}		
 	}
 }

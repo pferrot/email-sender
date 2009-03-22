@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.jms.JMSException;
 import javax.mail.internet.MimeMessage;
 
 import org.apache.commons.logging.Log;
@@ -16,6 +17,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.ui.velocity.VelocityEngineUtils;
 
+import com.pferrot.emailsender.jms.EmailToSendProducer;
 import com.pferrot.emailsender.manager.MailManager;
 
 public class MailManagerImpl implements MailManager {
@@ -27,7 +29,12 @@ public class MailManagerImpl implements MailManager {
 	
 	private JavaMailSender javaMailSender;
 	private VelocityEngine velocityEngine;
+	private EmailToSendProducer emailToSendProducer;
 	
+	public void setEmailToSendProducer(EmailToSendProducer emailToSendProducer) {
+		this.emailToSendProducer = emailToSendProducer;
+	}
+
 	public void setJavaMailSender(JavaMailSender javaMailSender) {
 		this.javaMailSender = javaMailSender;
 	}
@@ -36,7 +43,7 @@ public class MailManagerImpl implements MailManager {
 		this.velocityEngine = velocityEngine;
 	}
 	
-	public void send(String senderName, String senderAddress, 
+	public void sendSync(String senderName, String senderAddress, 
 			 Map<String, String> to,
 	         Map<String, String> cc, 
 	         Map<String, String> bcc, 
@@ -109,7 +116,7 @@ public class MailManagerImpl implements MailManager {
 		}		
 	}
 
-	public void send(String senderName, String senderAddress, 
+	public void sendSync(String senderName, String senderAddress, 
 					 Map<String, String> to,
 			         Map<String, String> cc, 
 			         Map<String, String> bcc, 
@@ -119,7 +126,7 @@ public class MailManagerImpl implements MailManager {
 			throws MailException {
 		
 		try {
-			send(senderName, senderAddress, to, cc, bcc, subject, getText(mergeObjects, templateLocation), getHtml(mergeObjects, templateLocation));
+			sendSync(senderName, senderAddress, to, cc, bcc, subject, getText(mergeObjects, templateLocation), getHtml(mergeObjects, templateLocation));
 		}
 		catch (MailException e) {
 			throw e;
@@ -129,7 +136,45 @@ public class MailManagerImpl implements MailManager {
 		}		
 	}
 	
-	public String getText(Map mergeObjects, String templateLocation) throws MailException {
+	// TODO: manage several to, cc and bcc.
+	public void send(String senderName, String senderAddress, 
+			 Map<String, String> to,
+	         Map<String, String> cc, 
+	         Map<String, String> bcc, 
+	         String subject, 
+	         String bodyText, 
+	         String bodyHtml)
+	throws MailException {
+		if (cc != null && !cc.keySet().isEmpty()) {
+			throw new MailPreparationException("'ccc' field not implemented yet.");
+		}
+		if (bcc != null  && !bcc.keySet().isEmpty()) {
+			throw new MailPreparationException("'bcc' field not implemented yet.");
+		}
+		if (to == null || to.keySet().size() != 1) {
+			throw new MailPreparationException("'to' field only support 1 destinee at the moment.");
+		}
+		final String toAddress = to.get(to.keySet().iterator().next());
+		try {
+			emailToSendProducer.sendMessage(senderName, senderAddress, toAddress, subject, bodyText, bodyHtml);
+		}
+		catch (JMSException e) {
+			throw new MailPreparationException(e);			
+		}
+	}
+	
+	public void send(String senderName, String senderAddress, 
+			Map<String, String> to,
+			Map<String, String> cc, 
+			Map<String, String> bcc, 
+			String subject, 
+			Map mergeObjects, 
+			String templateLocation)
+	throws MailException {
+		send(senderName, senderAddress, to, cc, bcc, subject, getText(mergeObjects, templateLocation), getHtml(mergeObjects, templateLocation));	
+	}	
+	
+	private String getText(Map mergeObjects, String templateLocation) throws MailException {
 		try {
 			StringWriter text = new StringWriter();
 			VelocityEngineUtils.mergeTemplate(velocityEngine, templateLocation + "/" + TEXT_TEMPLATE_SUFFIX, mergeObjects, text);
@@ -146,7 +191,7 @@ public class MailManagerImpl implements MailManager {
 		}
 	}
 	
-	public String getHtml(Map mergeObjects, String templateLocation) throws MailException {
+	private String getHtml(Map mergeObjects, String templateLocation) throws MailException {
 		try {
 			StringWriter html = new StringWriter();
 			VelocityEngineUtils.mergeTemplate(velocityEngine, templateLocation + "/" + HTML_TEMPLATE_SUFFIX, mergeObjects, html);
