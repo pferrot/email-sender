@@ -13,6 +13,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.jms.listener.SessionAwareMessageListener;
 import org.springframework.mail.MailException;
 
+import com.pferrot.emailsender.Utils;
 import com.pferrot.emailsender.manager.MailManager;
 
 public class EmailToSendConsumer implements SessionAwareMessageListener {
@@ -47,7 +48,17 @@ public class EmailToSendConsumer implements SessionAwareMessageListener {
             	final String subject = mapMessage.getString(EmailToSendProducer.SUBJECT_KEY);
             	final String bodyText = mapMessage.getString(EmailToSendProducer.BODY_TEXT_KEY);
             	final String bodyHtml = mapMessage.getString(EmailToSendProducer.BODY_HTML_KEY);
-            	mailManager.sendSync(senderName, senderAddress, toMap, null, null, subject, bodyText, bodyHtml);
+            	final Integer nbInlineResources = mapMessage.getInt(EmailToSendProducer.NB_INLINE_RESOURCES_KEY);
+            	Map<String, String> inlineResourcesMap = null;
+            	if (nbInlineResources > 0) {
+            		inlineResourcesMap =  new HashMap<String, String>();
+	            	for (int i = 0; i < nbInlineResources; i++) {
+	            		final String inlineResourceCode = mapMessage.getString(EmailToSendProducer.INLINE_RESOURCES_KEY + i);
+	            		final String[] idAndPath = Utils.decodeInlineResource(inlineResourceCode);
+	            		inlineResourcesMap.put(idAndPath[0], idAndPath[1]);
+	            	}
+            	}
+            	mailManager.sendSync(senderName, senderAddress, toMap, null, null, subject, bodyText, bodyHtml, inlineResourcesMap);
             }
             catch (JMSException jmse)
             {

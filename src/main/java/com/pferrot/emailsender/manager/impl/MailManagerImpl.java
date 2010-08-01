@@ -1,5 +1,6 @@
 package com.pferrot.emailsender.manager.impl;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Iterator;
@@ -11,6 +12,9 @@ import javax.mail.internet.MimeMessage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.velocity.app.VelocityEngine;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailPreparationException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -46,10 +50,11 @@ public class MailManagerImpl implements MailManager {
 	public void sendSync(String senderName, String senderAddress, 
 			 Map<String, String> to,
 	         Map<String, String> cc, 
-	         Map<String, String> bcc, 
+	         Map<String, String> bcc,
 	         String subject, 
 	         String bodyText, 
-	         String bodyHtml)
+	         String bodyHtml,
+	         Map<String, String> inlineResources)
 	throws MailException {
 		
 		try {
@@ -99,12 +104,26 @@ public class MailManagerImpl implements MailManager {
 			
 			helper.setText(bodyText, bodyHtml);
 			
+			// It is important to add the inline resources AFTER the text.
+			if (inlineResources != null && !inlineResources.isEmpty()) {
+				Iterator<String> ite = inlineResources.keySet().iterator();
+				while (ite.hasNext()) {
+					String resourceId = ite.next();
+					String path = inlineResources.get(resourceId);
+					if (log.isDebugEnabled()) {
+						log.debug("Inline resource ID: " + resourceId + " (" + path + ")");
+					}
+					final Resource resource = new ClassPathResource(path);
+					//final Resource resource = new FileSystemResource(new File(path));
+					helper.addInline(resourceId, resource);
+					//helper.addAttachment("superlogo.gif", resource);
+				}
+			}
+			
 			if (log.isDebugEnabled()) {
 				log.debug("Subject: " + subject);
 			}
 			helper.setSubject(subject);
-			
-			// TODO: attachements if needed.
 		
 			javaMailSender.send(helper.getMimeMessage());
 		}
@@ -119,14 +138,15 @@ public class MailManagerImpl implements MailManager {
 	public void sendSync(String senderName, String senderAddress, 
 					 Map<String, String> to,
 			         Map<String, String> cc, 
-			         Map<String, String> bcc, 
+			         Map<String, String> bcc,
 			         String subject, 
 			         Map mergeObjects, 
-			         String templateLocation)
+			         String templateLocation,
+			         Map<String, String> inlineResources)
 			throws MailException {
 		
 		try {
-			sendSync(senderName, senderAddress, to, cc, bcc, subject, getText(mergeObjects, templateLocation), getHtml(mergeObjects, templateLocation));
+			sendSync(senderName, senderAddress, to, cc, bcc, subject, getText(mergeObjects, templateLocation), getHtml(mergeObjects, templateLocation), inlineResources);
 		}
 		catch (MailException e) {
 			throw e;
@@ -140,10 +160,11 @@ public class MailManagerImpl implements MailManager {
 	public void send(String senderName, String senderAddress, 
 			 Map<String, String> to,
 	         Map<String, String> cc, 
-	         Map<String, String> bcc, 
+	         Map<String, String> bcc,
 	         String subject, 
 	         String bodyText, 
-	         String bodyHtml)
+	         String bodyHtml,
+	         Map<String, String> inlineResources)
 	throws MailException {
 		if (cc != null && !cc.keySet().isEmpty()) {
 			throw new MailPreparationException("'ccc' field not implemented yet.");
@@ -156,7 +177,7 @@ public class MailManagerImpl implements MailManager {
 		}
 		final String toAddress = to.get(to.keySet().iterator().next());
 		try {
-			emailToSendProducer.sendMessage(senderName, senderAddress, toAddress, subject, bodyText, bodyHtml);
+			emailToSendProducer.sendMessage(senderName, senderAddress, toAddress, subject, bodyText, bodyHtml, inlineResources);
 		}
 		catch (JMSException e) {
 			throw new MailPreparationException(e);			
@@ -166,13 +187,25 @@ public class MailManagerImpl implements MailManager {
 	public void send(String senderName, String senderAddress, 
 			Map<String, String> to,
 			Map<String, String> cc, 
-			Map<String, String> bcc, 
+			Map<String, String> bcc,
+			String subject, 
+			Map mergeObjects, 
+			String templateLocation,
+			Map<String, String> inlineResources)
+	throws MailException {
+		send(senderName, senderAddress, to, cc, bcc, subject, getText(mergeObjects, templateLocation), getHtml(mergeObjects, templateLocation), inlineResources);	
+	}
+
+	public void send(String senderName, String senderAddress, 
+			Map<String, String> to,
+			Map<String, String> cc, 
+			Map<String, String> bcc,
 			String subject, 
 			Map mergeObjects, 
 			String templateLocation)
 	throws MailException {
-		send(senderName, senderAddress, to, cc, bcc, subject, getText(mergeObjects, templateLocation), getHtml(mergeObjects, templateLocation));	
-	}	
+		send(senderName, senderAddress, to, cc, bcc, subject, mergeObjects, templateLocation, null);	
+	}
 	
 	private String getText(Map mergeObjects, String templateLocation) throws MailException {
 		try {
