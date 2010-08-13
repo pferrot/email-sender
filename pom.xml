@@ -3,13 +3,13 @@
 	<groupId>com.pferrot</groupId>
 	<artifactId>email-sender</artifactId>
 	<packaging>jar</packaging>
-	<version>0.2-SNAPSHOT</version>
+	<version>0.2</version>
 	<name>email-sender</name>
 	<url>http://maven.apache.org</url>
 	<scm>
-		<connection>scm:svn:svn://patrice-ws/svn/email-sender/trunk</connection>
-		<developerConnection>scm:svn:svn://patrice-ws/email-sender/trunk</developerConnection>
-		<url>http://patrice-ws/websvn/email-sender/trunk</url>
+		<connection>scm:svn:svn://patrice-ws/svn/email-sender/tags/email-sender-0.2</connection>
+		<developerConnection>scm:svn:svn://patrice-ws/email-sender/tags/email-sender-0.2</developerConnection>
+		<url>http://patrice-ws/websvn/email-sender/tags/email-sender-0.2</url>
 	</scm>
 	<distributionManagement>
 		<repository>
