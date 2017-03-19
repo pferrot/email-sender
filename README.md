@@ -24,4 +24,5 @@ In order to build this module, you will need to add the public JBoss repository,
    </repositories>
   </profile>
  </profiles>
-</settings>```
+</settings>
+```
